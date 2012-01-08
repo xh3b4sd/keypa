@@ -28,3 +28,7 @@ keypa.on('esc', function(e) {
     console.log('#### key "esc" was pressed ####');
 });
 
+keypa.on('down arrow', function(e) {
+    console.log('#### key "down arrow" was pressed ####');
+});
+
