@@ -2,7 +2,7 @@
  *
  * Keypa module to dispatch keyevents.
  *
- * Version 0.0.1
+ * Version 0.0.2
  */
 
 /*
@@ -64,13 +64,28 @@ Keypa.keyCodes = {
     'w': 87,
     'x': 88,
     'y': 89,
-    'z': 90,
+    'z': 90
 };
 
 /*
  * Object to register key callbacks.
  */
 Keypa.keyCallbacks = {};
+
+/*
+ * Object to register ctrl key callbacks.
+ */
+Keypa.ctrlKeyCallbacks = {};
+
+/*
+ * Object to register shift key callbacks.
+ */
+Keypa.shiftKeyCallbacks = {};
+
+/*
+ * Object to register keys that blocks events.
+ */
+Keypa.blockingKeys = {};
 
 /*
  * Add a new eventlistener to the given object.
@@ -91,9 +106,56 @@ Keypa.addEvent = function addEvent(obj, e, cb) {
  */
 Keypa.dispatch = function dispatch(e) {
     var keyCode = e.keyCode || e.wich || ''
-      , method = Keypa.keyCallbacks[keyCode];
+      , blocking = Keypa.blockKeys(keyCode);
 
-    if(typeof method === 'function') method(e);
+    Keypa.switchBlockingStates(keyCode);
+
+    if(blocking) return;
+
+    var method = Keypa.keyCallbacks[keyCode]
+      , ctrlMethod = Keypa.ctrlKeyCallbacks[keyCode]
+      , shiftMethod = Keypa.shiftKeyCallbacks[keyCode]
+
+    if(typeof ctrlMethod === 'function' && e.ctrlKey === true) ctrlMethod(e);
+    else if(typeof shiftMethod === 'function' && e.shiftKey === true) shiftMethod(e);
+    else if(typeof method === 'function' && e.ctrlKey === false && e.shiftKey === false) method(e);
+};
+
+/*
+ * Check if the currently pressed key is blocked or not.
+ *
+ * @param number keyCode, key code of the currently pressed key.
+ *
+ * @return boolean blocking, if the currently pressed key is blocked or not.
+ */
+Keypa.blockKeys = function blockKeys(keyCode) {
+    var blocking = false;
+
+    forEach(Keypa.blockingKeys, function(key, value) {
+        if(!value.active) return 'continue';
+
+        if(!inArray(keyCode, value.unblockingKeys)) {
+            blocking = true;
+            return 'break';
+        }
+    });
+
+    return blocking;
+};
+
+/*
+ * Switch the blocking state of a registered blocking key.
+ *
+ * @return boolean blocking, if the currently pressed key is blocked or not.
+ */
+Keypa.switchBlockingStates = function switchBlockingStates(keyCode) {
+    forEach(Keypa.blockingKeys, function(key, value) {
+        if(key == keyCode && !value.active) {
+            value.active = true;
+        } else if(value.active && inArray(keyCode, value.unblockingKeys)) {
+            value.active = false;
+        }
+    });
 };
 
 /*
@@ -107,6 +169,43 @@ Keypa.create = function create() {
     Keypa.addEvent(document, 'keydown', Keypa.dispatch);
 
     return self;
+};
+
+/*
+ * Parse human readable keys into key codes.
+ *
+ * @param array keys, the keys to parse.
+ *
+ * @return array keys, the parsed key codes.
+ */
+Keypa.parseKeyCodes = function parseKeyCodes(keys) {
+    forEach(keys, function(index, value) {
+        keys.push(Keypa.keyCodes[keys.shift()]);
+    });
+
+    return keys;
+};
+
+/*
+ * Register keys that blocks and unblock key events.
+ *
+ * @param array blockingKeys, the keys that blocks key events.
+ * @param array unblockingKeys, the keys that unblock key events.
+ */
+Keypa.registerBlockingKeys = function registerBlockingKeys(blockingKeys, unblockingKeys) {
+    forEach(blockingKeys, function(index, value) {
+        var blockingKey = Keypa.blockingKeys[value];
+
+        if(typeof blockingKey === 'undefined') {
+            Keypa.blockingKeys[value] = {
+                active: false,
+                unblockingKeys: unblockingKeys
+            }
+        } else {
+            Keypa.blockingKeys[value].unblockingKeys =
+                merge(blockingKey.unblockingKeys, unblockingKeys);
+        }
+    });
 };
 
 /*
@@ -124,4 +223,122 @@ Keypa.create = function create() {
 Keypa.prototype.on = function on(e, cb) {
     Keypa.keyCallbacks[Keypa.keyCodes[e]] = cb;
 };
+
+/*
+ * Register callbacks for ctrl events.
+ *
+ * @param string e, name of the event.
+ * @param function cb, callback to register.
+ */
+Keypa.prototype.onCtrl = function on(e, cb) {
+    Keypa.ctrlKeyCallbacks[Keypa.keyCodes[e]] = cb;
+};
+
+/*
+ * Register callbacks for shift events.
+ *
+ * @param string e, name of the event.
+ * @param function cb, callback to register.
+ */
+Keypa.prototype.onShift = function on(e, cb) {
+    Keypa.shiftKeyCallbacks[Keypa.keyCodes[e]] = cb;
+};
+
+/*
+ * Dispatch keys to block and unblock key events.
+ *
+ * @param array blockingKeys, the keys that blocks key events.
+ * @param array unblockingKeys, the keys that unblock key events.
+ */
+Keypa.prototype.blocks = function blocks(blockingKeys, unblockingKeys) {
+    blockingKeys = Keypa.parseKeyCodes(blockingKeys);
+    unblockingKeys = Keypa.parseKeyCodes(unblockingKeys);
+
+    Keypa.registerBlockingKeys(blockingKeys, unblockingKeys);
+};
+
+/*
+ *
+ * Helper methods.
+ *
+ */
+
+/*
+ * Check if an element exists in an array.
+ *
+ * @param needle, the term to search for.
+ * @param array haystack, the array to search trough.
+ *
+ * @return boolean, if the search term was found or not.
+ */
+function inArray(needle, haystack) {
+    if(haystack.indexOf(needle) === -1) return false;
+    else return true;
+};
+
+/*
+ * Check if a variable is an array or not.
+ *
+ * @param unknown object, the variable to check.
+ *
+ * @return boolean, if object is array or not.
+ */
+function isArray(object) {
+    if(object.constructor.toString().indexOf('Array') === -1) return false;
+    else return true;
+}
+
+/*
+ * Iterate trough an iteratable array or object.
+ *
+ * @param array || object object, the iteratable array or object to walk trough.
+ * @param function cb, the callback to execute.
+ */
+function forEach(object, cb) {
+    var i = 0;
+
+    if(isArray(object)) {
+        var ii = object.length;
+
+        for(i; i < ii; i++) {
+            var returnValue = cb(i, object[i]);
+
+            if(returnValue === 'break') break;
+            if(returnValue === 'continue') continue;
+        }
+    } else {
+        var keys = Object.keys(object)
+          , ii = keys.length;
+
+        for(i; i < ii; i++) {
+            var key = keys[i];
+
+            if(object.hasOwnProperty(key)) {
+                var returnValue = cb(key, object[key]);
+
+                if(returnValue === 'break') break;
+                if(returnValue === 'continue') continue;
+            }
+        }
+    }
+}
+
+/*
+ * Merge arrays uniquly.
+ *
+ * @param arrays, minimum 2 arrays to merge.
+ *
+ * @return array
+ */
+function merge() {
+    var data = [];
+
+    forEach(arguments, function(key, array) {
+        forEach(array, function(index, value) {
+            if(data.indexOf(value) === -1) data.push(value);
+        });
+    });
+
+    return data;
+}
 

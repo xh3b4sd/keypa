@@ -32,3 +32,21 @@ keypa.on('down arrow', function(e) {
     console.log('#### key "down arrow" was pressed ####');
 });
 
+keypa.onCtrl('down arrow', function(e) {
+    console.log('#### key "cctrl + down arrow" was pressed ####');
+});
+
+keypa.onShift('down arrow', function(e) {
+    console.log('#### key "shift + down arrow" was pressed ####');
+});
+
+/*
+ * Register blocking keys and unblocking keys.
+ */
+keypa.blocks(['f'], ['enter', 'esc']);
+
+keypa.on('f', function(e) {
+    console.log('#### key "f" was pressed and blocks now any other keys ####');
+    console.log('#### press key "enter" or "esc" to unblock keys ####');
+});
+
