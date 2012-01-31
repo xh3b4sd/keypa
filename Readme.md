@@ -22,7 +22,7 @@
     </script>
 
   Checkout the example file by pointing your browser to
-  **/examples/keypa-example.html**.
+  **/examples/keypa_example.html**.
 
   It is possible to register blocking key events. So you can
   create key events, that blocks all other keys when they are
@@ -42,8 +42,8 @@
 
 ## Tests
 
-  Tests are implemented with https://github.com/jquery/qunit.
-  Just point your browser to **/tests/keypa-test.html**.
+  Tests are implemented with https://github.com/pivotal/jasmine
+  Just point your browser to **/test/keypa_test.html**.
 
 
 
