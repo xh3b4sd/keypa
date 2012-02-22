@@ -237,12 +237,13 @@ var Keypa = function() {
      * @param object e, object of a current event.
      */
     function dispatch(e) {
-        var keyCode = e.keyCode || e.wich || ''
-          , blocking = blockKeys(keyCode);
+        var keyCode = e.keyCode || e.wich || '';
 
         switchBlockingStates(keyCode);
 
-        if(blocking) return;
+        if(blockKeys(keyCode)) {
+            return;
+        }
 
         var method = self.keyCallbacks[keyCode]
           , ctrlMethod = self.ctrlKeyCallbacks[keyCode]
