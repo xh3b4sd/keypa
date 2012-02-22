@@ -13,7 +13,7 @@
     <script src="keypa.js"></script>
 
     <script>
-        var keypa = Keypa.create();
+        var keypa = Keypa();
 
         keypa.on('esc', function(e) {
             // this function is called on pressing "escape"
